@@ -10,38 +10,92 @@ import httpx
 from livekit.agents import function_tool, Agent, RunContext
 
 load_dotenv(".env.local")
-url = "http://localhost:5003/api/v1/ask"
+url = "http://localhost:8000/api/v1/"
 
 
+# get available slots
 @function_tool()
-async def lookup_user(
+async def get_slots(context: RunContext) -> dict:
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"{url}available_slots")
+        return res.json()
+    
+# book appointment 
+@function_tool()
+async def book_appointment_tool(
     context: RunContext,
-    query: str,
-) -> dict:
-    """External API call to get information about the HR policy"""
-    payload = {
-        "question": query
-    }
-    headers = {
-        "Content-Type": "application/json"
-    }
-    async with httpx.AsyncClient(timeout=10) as client:
-        response = await client.post(
-            url,
-            json=payload,
-            headers=headers
+    user_id: int,
+    date: str,
+    time: str
+):
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            f"{url}book_appointment",
+            json={
+                "user_id": user_id,
+                "date": date,
+                "time": time
+            }
         )
-    print(response.text)
-    return response.json()
+        return res.json()
+    
+# modify appointment
+@function_tool()
+async def modify_tool(
+    context: RunContext,
+    appointment_id: int,
+    date: str,
+    time: str
+):
+    async with httpx.AsyncClient() as client:
+        res = await client.put(
+            f"{url}modify/{appointment_id}",
+            json={
+                "appointment_id": appointment_id,
+                "date": date,
+                "time": time
+            }
+        )
+        return res.json() 
 
+# cancel appointment
+@function_tool()
+async def cancel_tool(context: RunContext, appointment_id: int):
+    async with httpx.AsyncClient() as client:
+        res = await client.delete(
+            f"{url}cancel/{appointment_id}"
+        )
+        return res.json()
 
+# identify the user
+@function_tool()
+async def identify_user_tool(context: RunContext, phone: str, name: str):
+    async with httpx.AsyncClient() as client:
+        res = await client.post(
+            f"{url}identify_user",
+            json={
+                "phone": phone,
+                "name": name
+            }
+        )
+        return res.json()
 
-
+# 
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="""You are a helpful voice AI assistant. call the tool and give the response best way . If you don't know the answer, just say that you don't know, don't try to make up an answer. if ask what is your name, say your name is LiveKit Assistant.""",
-            tools=[lookup_user],
+            instructions="""
+            You are a booking assistant.
+
+            RULES:
+            - If user wants to book → call get_slots
+            - If user selects slot → call book_appointment_tool
+            - If user wants to cancel → call cancel_tool
+            - If user wants to modify → call modify_tool
+            - If user wants to identify → call identify_user_tool
+
+            Never guess. Always use tools.""",
+            tools=[get_slots, book_appointment_tool, cancel_tool, modify_tool, identify_user_tool],
         )
         
 

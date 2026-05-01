@@ -131,3 +131,30 @@ async def book_appointment(
         "date": data.date,
         "time": data.time
     }
+
+
+
+@router.get("/available_slots")
+async def available_slots(
+    db: AsyncSession = Depends(get_db)
+):
+    all_slots = [
+        ("2026-05-02", "10:00 AM"),
+        ("2026-05-02", "11:00 AM"),
+        ("2026-05-02", "02:00 PM"),
+    ]
+
+    result = await db.execute(
+        select(Appointment).where(Appointment.status == "booked")
+    )
+    booked = result.scalars().all()
+
+    booked_set = {(b.date, b.time) for b in booked}
+
+    available = [
+        {"date": d, "time": t}
+        for d, t in all_slots
+        if (d, t) not in booked_set
+    ]
+
+    return {"slots": available}
