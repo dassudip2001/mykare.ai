@@ -1,52 +1,65 @@
 # MyKare
 
-MyKare is a multi-service application built with LiveKit for real-time voice AI interactions. It consists of backend services, frontend interfaces, and LiveKit agent components for voice-enabled AI assistants.
+MyKare is a multi-service appointment booking and voice assistant project built with FastAPI, Next.js, and LiveKit. The repository includes:
 
-## Project Structure
+- `backend/`: FastAPI appointment service with SQLite persistence.
+- `frontend/`: Next.js UI for listing appointments and interacting with the backend.
+- `livekit-fe/`: LiveKit Agents React frontend for voice interaction.
+- `livekit-voice-agent/`: Python LiveKit Agents voice assistant with booking tools.
 
-This repository contains several interconnected services:
+## Repository Structure
 
-- **`backend/`**: Python-based backend service (placeholder for API or additional logic).
-- **`frontend/`**: Next.js frontend application.
-- **`livekit-be/`**: LiveKit Agents backend for Python, providing voice AI capabilities.
-- **`livekit-fe/`**: React frontend with LiveKit Agents UI components for voice interactions.
+```
+mykare/
+├── backend/                # FastAPI appointment API
+├── frontend/               # Next.js frontend app
+├── livekit-fe/             # LiveKit voice agent React frontend
+├── livekit-voice-agent/    # Python LiveKit Agents voice service
+└── Readme.md               # Repository overview
+```
 
-## Features
+## Backend Service (`backend/`)
 
-- **Voice AI Assistant**: Powered by LiveKit Agents with support for real-time voice interactions.
-- **Multiple Frontends**: Separate interfaces for different use cases (Next.js and React with Agents UI).
-- **Modular Architecture**: Backend and frontend services can be deployed independently.
-- **LiveKit Integration**: Utilizes LiveKit for media streaming, agent orchestration, and observability.
-- **Customizable UI**: Includes various audio visualizers, themes, and UI components.
+The backend is a FastAPI app serving appointment and user operations.
 
-## Getting Started
+### Key features
 
-### Prerequisites
+- SQLite database stored in `backend/test.db`
+- Automatically creates tables on startup
+- Appointment booking, cancellation, modification, and listing
+- User identification by phone number
 
-- Node.js (for frontend services)
-- Python 3.8+ (for backend services)
-- LiveKit Cloud account (for voice AI features)
+### Endpoints
 
-### Installation
+- `GET /api/v1/` - health check
+- `GET /api/v1/slots` - static available slots
+- `GET /api/v1/all_appointments` - list all appointments with user details
+- `GET /api/v1/appointments/{user_id}` - appointments for a specific user
+- `POST /api/v1/identify_user` - identify or register a user
+- `POST /api/v1/book_appointment` - create a new appointment
+- `PUT /api/v1/modify/{appointment_id}` - reschedule an appointment
+- `DELETE /api/v1/cancel/{appointment_id}` - cancel an appointment
 
-1. Clone the repository:
-
-   ```bash
-   git clone <repository-url>
-   cd mykare
-   ```
-
-2. Set up each service:
-
-#### Backend
+### Run backend
 
 ```bash
 cd backend
-pip install -r requirements.txt  # If dependencies exist
 python main.py
 ```
 
-#### Frontend
+The service launches on `http://127.0.0.1:8000` by default.
+
+### API docs
+
+OpenAPI documentation is available at:
+
+- `http://127.0.0.1:8000/docs`
+
+## Frontend App (`frontend/`)
+
+This Next.js application currently fetches appointment data from the backend API.
+
+### Local development
 
 ```bash
 cd frontend
@@ -54,16 +67,19 @@ npm install
 npm run dev
 ```
 
-#### LiveKit Backend (livekit-be)
+Open `http://localhost:3001` in your browser.
 
-```bash
-cd livekit-be
-pip install -e .
-# Configure LiveKit credentials
-python src/agent.py
-```
+### Notes
 
-#### LiveKit Frontend (livekit-fe)
+- App is configured to call `http://localhost:8000/api/v1/all_appointments`
+- Uses Next.js 16 and TypeScript
+- UI can be extended via `frontend/app/page.tsx`
+
+## LiveKit React Frontend (`livekit-fe/`)
+
+A LiveKit Agents starter frontend with voice session UI and audio visualizers.
+
+### Install and run
 
 ```bash
 cd livekit-fe
@@ -71,30 +87,93 @@ npm install
 npm run dev
 ```
 
-### Environment Setup
+The app uses `.env.local` for LiveKit and agent configuration.
 
-For LiveKit services, ensure you have:
+### Environment variables
 
-- LiveKit API key and secret
-- OpenAI API key (for inference)
-- Cartesia API key (for TTS)
-- Deepgram API key (for STT)
+Copy `.env.example` to `.env.local` and fill in values:
 
-## Usage
+```env
+LIVEKIT_API_KEY=""
+LIVEKIT_API_SECRET=""
+LIVEKIT_URL=""
+NEXT_PUBLIC_LIVEKIT_URL=""
+OPENAI_API_KEY=""
+BEY_API_KEY=""
+```
 
-1. Start the LiveKit backend agent.
-2. Launch the frontend interfaces.
-3. Connect to a LiveKit room for voice interactions.
+## LiveKit Voice Agent (`livekit-voice-agent/`)
 
-## Development
+This Python service is a LiveKit Agents assistant configured to manage appointments via the backend API.
 
-- Use the provided Dockerfiles for containerized deployment.
-- Refer to individual service READMEs for detailed setup and customization.
+### Features
 
-## Contributing
+- Uses `livekit-agents` for voice sessions
+- Custom agent logic for booking, rescheduling, cancelling, and retrieving appointments
+- Contains tool functions that call the backend API
+- Loads environment variables from `.env.local`
 
-Contributions are welcome! Please read the contributing guidelines for each service.
+### Run voice agent
+
+```bash
+cd livekit-voice-agent
+python main.py
+```
+
+### Dependencies
+
+The service uses:
+
+- `livekit-agents`
+- `python-dotenv`
+- `httpx`
+- `torch`
+
+## Database model
+
+The backend stores two tables:
+
+- `users`
+  - `id`
+  - `name`
+  - `phone`
+- `appointments`
+  - `id`
+  - `user_id`
+  - `date`
+  - `time`
+  - `status`
+
+## Quick start
+
+1. Start the backend:
+   ```bash
+   cd backend
+   python main.py
+   ```
+2. Start the frontend UI:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+3. Start the LiveKit voice frontend (optional):
+   ```bash
+   cd livekit-fe
+   npm install
+   npm run dev
+   ```
+4. Start the LiveKit voice agent (optional):
+   ```bash
+   cd livekit-voice-agent
+   python main.py
+   ```
+
+## Notes
+
+- If you change the backend URL or ports, update the frontend fetch URL and the voice agent `url` constant in `livekit-voice-agent/main.py`.
+- The API supports appointment workflows and can be extended to add authentication or calendar integration.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE files in each service directory for details.
+This repository does not contain a unified license file at the root. Check each service directory for its own license or add one if required.
